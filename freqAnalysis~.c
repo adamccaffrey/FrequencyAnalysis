@@ -40,7 +40,7 @@ typedef struct _freqAnalysis_tilde
 	t_outlet*		out;
 	t_outlet*		out2;
 	
-	} t_fftwObject;
+	} t_freqAnalysis;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 static inline float window(t_float position)
 {
@@ -55,7 +55,7 @@ float map(float x, float in_floor, float in_ceil, float out_floor, float out_cei
 	return (x - in_floor) * (out_ceil - out_floor) / (in_ceil - in_floor) + out_floor;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static void freqAnalysis_tilde_harmonics(t_fftwObject *x, t_float f)
+static void freqAnalysis_tilde_harmonics(t_freqAnalysis *x, t_float f)
 {
 	f = f > 1 ? 1 : f < 1/number_harmonics ? 1/number_harmonics : f;
 
@@ -63,13 +63,13 @@ static void freqAnalysis_tilde_harmonics(t_fftwObject *x, t_float f)
 	x->harmonics = x->harmonics < 1 ? 1: x->harmonics > number_harmonics ? number_harmonics: x->harmonics;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static void freqAnalysis_tilde_tone(t_fftwObject *x, t_float f)
+static void freqAnalysis_tilde_tone(t_freqAnalysis *x, t_float f)
 {
 	f = f > 1 ? 1 : f < 0 ? 0 : f;
 	x->tone = f;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static void freqAnalysis_tilde_feedback(t_fftwObject *x, t_float f)
+static void freqAnalysis_tilde_feedback(t_freqAnalysis *x, t_float f)
 {
 	f = f > 1 ? 1 : f < 0 ? 0 : f;
 	x->feedback = map(f, 0, 1, 0.8, 0.999);
@@ -98,14 +98,14 @@ static inline float profile(float fi, float bwi)
     return (exp(-x)/bwi);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static void freqAnalysis_tilde_pitchThresh(t_fftwObject *x, t_float f)
+static void freqAnalysis_tilde_pitchThresh(t_freqAnalysis *x, t_float f)
 {
 	f = f > 1 ? 1 : f < 0 ? 0 : f;
 
 	x->pitchThresh = f * N/3.0;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static void pitchDetect(t_fftwObject *x, fftwf_complex input[STEP])
+static void pitchDetect(t_freqAnalysis *x, fftwf_complex input[STEP])
 {
 	float real = 0;
 	float imag = 0;
@@ -146,7 +146,7 @@ static void pitchDetect(t_fftwObject *x, fftwf_complex input[STEP])
 	}
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static void overtoneGen(t_fftwObject *x, float f, float bw, int nh)
+static void overtoneGen(t_freqAnalysis *x, float f, float bw, int nh)
 {
 	float bw_Hz = 0;
 	float bwi = 0;
@@ -173,7 +173,7 @@ static void overtoneGen(t_fftwObject *x, float f, float bw, int nh)
 		x->overtonesPol[i][0] *= x->feedback;
 } 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static void freqAnalysis_tilde_bang(t_fftwObject *x)
+static void freqAnalysis_tilde_bang(t_freqAnalysis *x)
 {
 	// for (int i = 0; i<STEP; i++)
 	// {
@@ -199,7 +199,7 @@ static void freqAnalysis_tilde_bang(t_fftwObject *x)
 
 static t_int *freqAnalysis_tilde_perform(t_int *w)
 {
-	t_fftwObject* x = (t_fftwObject*)(w[1]);
+	t_freqAnalysis* x = (t_freqAnalysis*)(w[1]);
 	t_sample* in1 = (t_sample*)(w[2]);
 	t_sample* in2 = (t_sample*)(w[3]);
 	t_sample* out = (t_sample*)(w[4]);
@@ -265,7 +265,7 @@ static t_int *freqAnalysis_tilde_perform(t_int *w)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 static void *freqAnalysis_tilde_new()	
 {
-	t_fftwObject *x = (t_fftwObject *)pd_new(freqAnalysis_tilde_class);
+	t_freqAnalysis *x = (t_freqAnalysis *)pd_new(freqAnalysis_tilde_class);
 	x->sr = sys_getsr();
 	x->in2 = inlet_new(&x->x_obj, &x->x_obj.ob_pd, &s_signal, &s_signal);
 	x->out = outlet_new(&x->x_obj, &s_signal);
@@ -315,12 +315,12 @@ static void *freqAnalysis_tilde_new()
 	return (void *)x;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static void freqAnalysis_tilde_dsp(t_fftwObject *x, t_signal **sp)
+static void freqAnalysis_tilde_dsp(t_freqAnalysis *x, t_signal **sp)
 {
 	dsp_add(freqAnalysis_tilde_perform, 6, x, sp[0]->s_vec, sp[1]->s_vec, sp[2]->s_vec, sp[3]->s_vec, sp[0]->s_n);
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static void freqAnalysis_tilde_free(t_fftwObject *x)
+static void freqAnalysis_tilde_free(t_freqAnalysis *x)
 {
 	inlet_free(x->in2);
 	outlet_free(x->out);
@@ -329,13 +329,13 @@ static void freqAnalysis_tilde_free(t_fftwObject *x)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void freqAnalysis_tilde_setup(void)
 {
-	freqAnalysis_tilde_class = class_new(gensym("fftwObject~"),
+	freqAnalysis_tilde_class = class_new(gensym("freqAnalysis~"),
 										(t_newmethod)freqAnalysis_tilde_new,
 										(t_method)freqAnalysis_tilde_free,
-										sizeof(t_fftwObject),
+										sizeof(t_freqAnalysis),
 										CLASS_DEFAULT,
 										0);
-	CLASS_MAINSIGNALIN(freqAnalysis_tilde_class, t_fftwObject, x_signal_in);
+	CLASS_MAINSIGNALIN(freqAnalysis_tilde_class, t_freqAnalysis, x_signal_in);
 
 	class_addbang(freqAnalysis_tilde_class, (t_method)freqAnalysis_tilde_bang);
 
